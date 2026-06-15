@@ -1,5 +1,53 @@
-from project.monitor import get_mac_table_entries
 import time
+import subprocess
+import re
+
+
+def run_cmd(cmd):
+    """Run shell command"""
+    result = subprocess.check_output(cmd, shell=True, text=True)
+    return result.strip()
+
+
+def get_mac_table_entries(sw):
+
+    try:
+        output = run_cmd(f"ovs-appctl fdb/show {sw}")
+
+        mac_entries = []
+
+        for line in output.splitlines():
+
+            # Example:
+            # port VLAN MAC                 Age
+            # 1    1     00:00:00:00:00:01 12
+
+            match = re.search(
+                r"(\d+)\s+(\d+)\s+([0-9a-f:]{17})\s+(\d+)",
+                line,
+                re.IGNORECASE
+            )
+
+            if match:
+
+                port = match.group(1)
+                vlan = match.group(2)
+                mac = match.group(3)
+                age = int(match.group(4))
+
+                mac_entries.append({
+                    "vlan": vlan,
+                    "mac": mac,
+                    "port": port,
+                    "age": age
+                })
+
+        return mac_entries
+
+    except Exception as e:
+        print(f"[ERROR] MAC table fetch failed: {e}")
+        return []
+    
 
 try:
     while True:
@@ -32,5 +80,6 @@ try:
 
         time.sleep(1)
 
+    
 except KeyboardInterrupt:
     print("\nStopped cleanly.")

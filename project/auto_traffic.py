@@ -8,6 +8,7 @@
 import time
 import subprocess
 import random
+import threading
 
 def fdb_refresh_loop(switch_name, interval=1):
     """
@@ -36,7 +37,6 @@ def fdb_refresh_loop(switch_name, interval=1):
 
         time.sleep(interval)
 
-
 def bootstrap_learning(net):
     """
     One-time startup traffic so switch learns some MACs.
@@ -62,14 +62,14 @@ def bootstrap_learning(net):
 
     print("[BOOTSTRAP] Done")
 
-
+stop_event = threading.Event()
 def random_keepalive(net):
     """
     Very light refresh traffic.
     Keeps some MAC entries alive.
     """
 
-    all_hosts = net.hosts
+    all_hosts = [h for h in net.hosts if h.intf() is not None] 
 
     count = random.randint(1, max(1, len(all_hosts) // 5) ) #Picks 1 to ~20% of hosts
 
@@ -84,7 +84,6 @@ def random_keepalive(net):
         src.cmd(f"ping -c 1 {dst.IP()} > /dev/null 2>&1 &")
 
     print(f"[KEEPALIVE] Refreshed {len(hosts)} hosts")
-
 
 def start_user_session(net):
     """
@@ -128,7 +127,6 @@ def start_user_session(net):
         f"for {duration}s"
     )
 
-
 def start_burst(net):
     """
     Simulate a busy period.
@@ -167,42 +165,32 @@ def start_burst(net):
 
     print(f"[BURST] {num_flows} flows started")
 
-
 def keepalive(net):
 
     print("[TRAFFIC] Event-driven traffic engine started")
 
     last_burst = time.time()
 
-    while True:
+    while not stop_event.is_set():
 
-        #
-        # 40% chance:
-        # refresh a few MAC entries
-        #
-        if random.random() < 0.4:
-            random_keepalive(net)
+        try:
+            if random.random() < 0.4:
+                random_keepalive(net)
 
-        #
-        # 30% chance:
-        # start one user session
-        #
-        if random.random() < 0.3:
-            start_user_session(net)
+            if random.random() < 0.3:
+                start_user_session(net)
 
-        #
-        # every 5-10 minutes:
-        # burst period
-        #
-        burst_interval = random.randint(
-            300,
-            600
-        )
+            burst_interval = random.randint(300, 600)
 
-        if time.time() - last_burst > burst_interval:
-
-            start_burst(net)
-
-            last_burst = time.time()
+            if time.time() - last_burst > burst_interval:
+                start_burst(net)
+                last_burst = time.time()
+        
+        except Exception as e:
+            if stop_event.is_set():
+                break               # ← silent exit on shutdown
+            print(f"[WARN] keepalive error: {e}")
 
         time.sleep(10)
+    print("[TRAFFIC] Keepalive stopped cleanly")
+                

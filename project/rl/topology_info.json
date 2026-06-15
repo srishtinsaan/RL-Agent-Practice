@@ -1,0 +1,16 @@
+{
+    "blockable_ports": [
+        2,
+        3,
+        4
+    ],
+    "uplink_ports": [
+        1
+    ],
+    "all_ports": [
+        1,
+        2,
+        3,
+        4
+    ]
+}

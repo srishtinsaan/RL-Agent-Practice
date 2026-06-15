@@ -20,14 +20,15 @@ def get_reward(
     )
 
     action_cost = {
-        0: 0.01,
-        1: 0.05,
+        0: 0.01, #learn mac
+        1: 0.05, #evict entry
         2: 0.15, #Flood
         3: 0.10, #block Port
-        4: 0.05,
-        5: 0.05,
-        6: 0.05
+        4: 0.05, #unblock port
+        5: 0.05, #increase aging
+        6: 0.05  #increase aging
     }
+
             # 0: 'LEARN_MAC',
             # 1: 'EVICT_ENTRY',
             # 2: 'FLOOD',

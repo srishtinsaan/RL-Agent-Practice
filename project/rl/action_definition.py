@@ -10,7 +10,6 @@ def run_cmd(cmd):
     try:
         result = subprocess.check_output(cmd, shell=True, text=True)
         return result.strip()
-
     except subprocess.CalledProcessError as e:
         print("\n[WARN] Command failed")
         print("CMD:", e.cmd)
@@ -21,9 +20,7 @@ def run_cmd(cmd):
         return None
 
 def action_learn_mac(sw):
-    run_cmd(f"sudo ovs-ofctl del-flows {sw} cookie=0xDEAD/-1")
-    run_cmd(f"ovs-vsctl set-fail-mode {sw} standalone")
-    print(f"  [ACTION] LEARN_MAC — Removed flood rule + standalone mode on {sw}")
+    pass
 
 def action_evict_entry(sw):
     """Evict only the single stalest MAC entry. Does NOT flush the whole table."""
@@ -62,22 +59,6 @@ def action_flood(sw):
     run_cmd(f"ovs-vsctl set-fail-mode {sw} secure")
     run_cmd(f"sudo ovs-ofctl add-flow {sw} cookie=0xDEAD,priority=1,idle_timeout=10,actions=FLOOD")
     print(f"  [ACTION] FLOOD — Temporary flooding rule added (10s idle timeout) on {sw}")
-
-def action_block_port(sw, port):
-    """Bring a port administratively down to stop traffic"""
-    try:
-        run_cmd(f"ovs-ofctl mod-port {sw} {port} down")
-        print(f"  [ACTION] BLOCK_PORT — blocked port {port} on {sw}")
-    except Exception as e:
-        print(f"  [ERROR] BLOCK_PORT failed on port {port}: {e}")
-
-def action_unblock_port(sw, port):
-    """Bring a port back up"""
-    try:
-        run_cmd(f"ovs-ofctl mod-port {sw} {port} up")
-        print(f"  [ACTION] UNBLOCK_PORT — unblocked port {port} on {sw}")
-    except Exception as e:
-        print(f"  [ERROR] UNBLOCK_PORT failed on port {port}: {e}")
 
 def action_increase_aging(sw):
     """Increase MAC aging timer — entries live longer"""

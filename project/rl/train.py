@@ -16,6 +16,8 @@ def run_live_training(switch='g0_s0', episodes=200, steps_per_ep=30):
     log_path = 'project/results/logs/live_step_log.csv'
     os.makedirs('project/results/logs', exist_ok=True)
 
+
+    # per step q table
     qtable_path = 'project/results/qtable/q_table.csv'
     os.makedirs('project/results/qtable', exist_ok=True)
 
@@ -79,6 +81,8 @@ def run_live_training(switch='g0_s0', episodes=200, steps_per_ep=30):
             'Q_DEC_AGE'])
 
     rewards_history = []
+
+    
     
     # G
     with open(episode_log_path, 'w', newline='') as f:
@@ -178,7 +182,8 @@ def run_live_training(switch='g0_s0', episodes=200, steps_per_ep=30):
                 f"Reward: {reward:+.2f} | "
                 f"ε: {agent.epsilon:.3f}"
             )
-
+        
+        # discounted return
         G = 0
         for r in reversed(episode_rewards):
             G = r + agent.gamma * G
@@ -191,6 +196,23 @@ def run_live_training(switch='g0_s0', episodes=200, steps_per_ep=30):
 
         agent.decay_epsilon()
         rewards_history.append(total_reward)
+
+        # Final q table generated after training
         print(f"\nEp {ep+1}/{episodes} | Total Reward: {total_reward:+.2f}\n")
+
+        with open(qtable_path, 'w', newline='') as f:
+            writer = csv.writer(f)
+            writer.writerow(['State_Index', 'mac_bin', 'flood_bin', 'age_bin',
+                             'Q_LEARN', 'Q_EVICT', 'Q_FLOOD', 'Q_BLOCK',
+                             'Q_UNBLOCK', 'Q_INC_AGE', 'Q_DEC_AGE'])
+            for state_idx in range(encoder.total_states()):
+                m, fl, a = encoder.decode_state_index(state_idx)
+                q = agent.get_q_values(state_idx)
+                writer.writerow([
+                    state_idx, m, fl, a,
+                    round(q[0],4), round(q[1],4), round(q[2],4),
+                    round(q[3],4), round(q[4],4), round(q[5],4), round(q[6],4)
+                ])
+
 
     return agent, encoder, rewards_history
